@@ -6,6 +6,8 @@ resources:
   - postgres/secret.yaml
   - postgres/statefulset.yaml
   - postgres/service.yaml
+  - jaeger/deployment.yaml
+  - jaeger/service.yaml
   - checkout-service/configmap.yaml
   - checkout-service/secret.yaml
   - checkout-service/deployment.yaml
