@@ -1,6 +1,9 @@
 # SRE Incident Response & Observability Lab
 
+Production-style incident investigation lab using OpenTelemetry, Prometheus, Grafana, Jaeger, PostgreSQL, and Kubernetes.
+
 This project simulates real production incidents and demonstrates how SRE teams investigate, identify root causes, and verify fixes with observability tools.
+
 
 ## Target Stack
 
@@ -10,18 +13,25 @@ This project simulates real production incidents and demonstrates how SRE teams 
 - Jaeger for distributed tracing
 - Kubernetes for deployment and incident simulation
 
+## Observability Features
+
+- Metrics (Prometheus)
+- Distributed Tracing (OpenTelemetry + Jaeger)
+- Context Propagation
+- Trace/Span Correlation
+- Service Dependency Analysis
+
 ## First Incident Scenario
+
+<img width="1646" height="688" alt="Screenshot 2026-06-08 at 14 38 06" src="https://github.com/user-attachments/assets/adac2067-c8d5-481f-8fe7-d22e308d7b08" />
 
 **High Latency caused by Database Connection Pool Exhaustion**
 
 Expected symptom:
-
 ```text
-P95 latency: 300ms -> 2500ms
+P95 latency: 900ms -> 2500ms
 ```
-
 Investigation path:
-
 ```text
 Grafana
   -> Prometheus
@@ -29,25 +39,42 @@ Grafana
   -> Jaeger traces
   -> Root cause analysis
 ```
+## Troubleshoot workflow
+<img width="1019" height="2669" alt="mermaid-diagram" src="https://github.com/user-attachments/assets/6b63caf6-a4cd-4238-aa6d-e9c7091b71a7" />
 
-Root cause:
 
-```text
-Database connection pool exhausted
-```
+## screenshots
+1. Prometheus is working properly and Prometheus scrape metrics is healthy.
+<img width="1658" height="370" alt="Screenshot 2026-06-08 at 10 57 21" src="https://github.com/user-attachments/assets/bfc11317-ed7d-4316-a002-280bc36cd08a" />
 
-Fix:
+2. However, application downstream is unhealthy, P95 latency is very high and error rate is spike. 
+<img width="1646" height="708" alt="Screenshot 2026-06-08 at 14 31 48" src="https://github.com/user-attachments/assets/313abd9c-bf81-4a07-9109-b9c40b24a99a" />
 
-```text
-Increase the database connection pool size based on expected concurrency and database capacity.
-```
+3. Check logs
+<img width="1025" height="189" alt="Screenshot 2026-06-08 at 14 31 04" src="https://github.com/user-attachments/assets/f5ee3417-b875-4478-91c5-80ab3b03d185" />
+
+4. From JaegerUI Distributed Tracing
+<img width="1655" height="848" alt="Screenshot 2026-06-08 at 14 42 56" src="https://github.com/user-attachments/assets/597ce362-96ac-4828-b587-9ef88e67deec" />
+
+## Root Cause
+
+Database connection pool was configured with a maximum of 2 active connections.
+During load testing, concurrent requests exceeded available database connections, causing requests to block while waiting for a free connection.
+This resulted in:
+- Increased request latency
+- Elevated error rates
+- Trace spans showing prolonged database wait times
+
+## Resolution
+
+- Increased connection pool size from 2 to 20
+- Added connection pool utilization metrics
+- Documented database capacity thresholds
+
 
 ## Implementation Approach
-
 The lab will be built step by step. Each step adds one small feature and is committed separately.
-
 Initial milestones:
-
 1. Create the project overview.
 2. Add a minimal checkout API.
 3. Add PostgreSQL.
