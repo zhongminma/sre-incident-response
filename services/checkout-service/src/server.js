@@ -1,9 +1,22 @@
 const express = require("express");
 const { pool } = require("./db");
+const { metricsRegister, observeHttpRequest } = require("./metrics");
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
 const simulatedDbWorkMs = Number(process.env.SIMULATED_DB_WORK_MS || 800);
+
+app.use((req, res, next) => {
+  const startedAt = Date.now();
+
+  res.on("finish", () => {
+    if (req.path !== "/metrics") {
+      observeHttpRequest(req, res, startedAt);
+    }
+  });
+
+  next();
+});
 
 app.get("/health", (req, res) => {
   res.status(200).json({
@@ -56,6 +69,11 @@ app.get("/checkout", async (req, res) => {
       console.log("checkout request released database connection");
     }
   }
+});
+
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", metricsRegister.contentType);
+  res.status(200).send(await metricsRegister.metrics());
 });
 
 app.listen(port, () => {
