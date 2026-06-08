@@ -29,7 +29,7 @@ This means only two checkout requests can hold a database connection at the same
 Start the lab:
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
 Run the high latency load test:
@@ -216,6 +216,33 @@ Recommended follow-up actions:
 
 This section explains how to test the local Docker Compose version of the incident.
 
+### Prerequisites
+
+Before starting, confirm these tools are available:
+
+```bash
+docker --version
+docker compose version
+k6 version
+```
+
+If `k6` is not installed on macOS, install it with Homebrew:
+
+```bash
+brew install k6
+```
+
+Also make sure Docker Desktop is running and these local ports are free:
+
+```text
+3000  checkout-service
+3001  Grafana
+9090  Prometheus
+16686 Jaeger
+5432  Postgres
+4318  OpenTelemetry HTTP receiver
+```
+
 The goal is to validate the full incident workflow:
 
 ```text
@@ -375,6 +402,14 @@ Checkout Request Rate
 Checkout Error Rate
 ```
 
+If the dashboard shows `No data`, generate one checkout request:
+
+```bash
+curl http://localhost:3000/checkout
+```
+
+Wait about 10 seconds, then refresh Grafana. The dashboard queries use `route="/checkout"`, so `/health` traffic alone is not enough to populate the panels.
+
 ### 5. Verify Jaeger
 
 Open Jaeger:
@@ -406,6 +441,12 @@ pg.query:SELECT checkout
 ```
 
 ### 6. Trigger the High Latency Incident
+
+Confirm the checkout endpoint works before starting the load test:
+
+```bash
+curl http://localhost:3000/checkout
+```
 
 Run the high latency load test:
 
@@ -467,7 +508,17 @@ Expected finding:
 P95 latency rises sharply during the load test.
 ```
 
+Use the `Last 15 minutes` time range and refresh the dashboard after k6 has been running for 10-20 seconds.
+
 ### 8. Observe the Incident in Prometheus
+
+First confirm Prometheus has checkout samples:
+
+```promql
+http_request_duration_seconds_count{route="/checkout"}
+```
+
+If this query returns no series, run one checkout request or start the k6 load test, then wait for the next Prometheus scrape.
 
 P95 latency:
 
@@ -646,11 +697,35 @@ If Grafana dashboard is missing:
 docker compose logs grafana
 ```
 
+If Grafana shows `No data`:
+
+```bash
+curl http://localhost:3000/checkout
+k6 run load/high-latency.js
+```
+
+Then wait 10-20 seconds and refresh Grafana with the time range set to `Last 15 minutes`.
+
+Prometheus target `UP` only means Prometheus can scrape `/metrics`. It does not mean the incident has checkout traffic yet.
+
+Confirm checkout metrics exist with:
+
+```promql
+http_request_duration_seconds_count{route="/checkout"}
+```
+
 If Prometheus target is down:
 
 ```bash
 docker compose logs prometheus
 docker compose logs checkout-service
+```
+
+If `k6` is not found:
+
+```bash
+brew install k6
+k6 version
 ```
 
 If Jaeger has no traces:
