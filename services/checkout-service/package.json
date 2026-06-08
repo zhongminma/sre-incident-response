@@ -1,0 +1,13 @@
+{
+  "name": "checkout-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal checkout API for the SRE incident response lab.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
