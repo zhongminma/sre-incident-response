@@ -58,22 +58,32 @@ Grafana
   -> Jaeger traces
   -> Root cause analysis
 ```
-## Troubleshoot workflow
 <img width="3287" height="523" alt="mermaid-diagram (1)" src="https://github.com/user-attachments/assets/094a4f2f-f923-4c1c-813d-8692e5ba5f01" />
 
+## Incident Investigation Workflow
+1. Alert Triggered with P95 latency > 2.5s (should send email or warning message via slack to inform the related team)
 
-## screenshots
-1. Prometheus is working properly and Prometheus scrape metrics is healthy.
+2. In the Prometheus Metrics, the Prometheus is working properly and Prometheus scrape metrics is healthy.
 <img width="1658" height="370" alt="Screenshot 2026-06-08 at 10 57 21" src="https://github.com/user-attachments/assets/bfc11317-ed7d-4316-a002-280bc36cd08a" />
 
-2. However, application downstream is unhealthy, P95 latency is very high and error rate is spike. 
+3. In the Grafana Dashboard, the application downstream is unhealthy, P95 latency is very high and error rate has a spike.
 <img width="1646" height="708" alt="Screenshot 2026-06-08 at 14 31 48" src="https://github.com/user-attachments/assets/313abd9c-bf81-4a07-9109-b9c40b24a99a" />
 
-3. Check logs
+4. Application Logs show Connection acquisition timeout
 <img width="1025" height="189" alt="Screenshot 2026-06-08 at 14 31 04" src="https://github.com/user-attachments/assets/f5ee3417-b875-4478-91c5-80ab3b03d185" />
 
-4. From JaegerUI Distributed Tracing
+5. From JaegerUI Distributed Tracing, the error is found as Large spans waiting for DB pool
 <img width="1655" height="848" alt="Screenshot 2026-06-08 at 14 42 56" src="https://github.com/user-attachments/assets/597ce362-96ac-4828-b587-9ef88e67deec" />
+
+6. Root Cause is "Database connection pool exhausted".
+
+7. Mitigation
+- Increase pool size
+- Optimize query execution
+
+8. Verification
+- P95 recovered to < 1s
+- Error rate normalized
 
 ## Root Cause
 
