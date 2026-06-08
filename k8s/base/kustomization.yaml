@@ -11,6 +11,11 @@ resources:
   - postgres/service.yaml
   - jaeger/deployment.yaml
   - jaeger/service.yaml
+  - kube-state-metrics/serviceaccount.yaml
+  - kube-state-metrics/rbac.yaml
+  - kube-state-metrics/deployment.yaml
+  - kube-state-metrics/service.yaml
+  - prometheus/rbac.yaml
   - prometheus/configmap.yaml
   - prometheus/deployment.yaml
   - prometheus/service.yaml
