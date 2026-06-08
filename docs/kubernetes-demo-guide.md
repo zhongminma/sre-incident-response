@@ -76,28 +76,30 @@ jaeger
 
 ## 3. Port Forward Local Access
 
+These local ports intentionally avoid the Docker Compose demo ports. This lets Docker Compose and Kubernetes run at the same time without sending browser or k6 traffic to the wrong environment.
+
 Checkout service:
 
 ```bash
-kubectl port-forward -n sre-lab svc/checkout-service 3000:3000
+kubectl port-forward -n sre-lab svc/checkout-service 3002:3000
 ```
 
 Prometheus:
 
 ```bash
-kubectl port-forward -n sre-lab svc/prometheus 9090:9090
+kubectl port-forward -n sre-lab svc/prometheus 9190:9090
 ```
 
 Grafana:
 
 ```bash
-kubectl port-forward -n sre-lab svc/grafana 3001:3000
+kubectl port-forward -n sre-lab svc/grafana 3101:3000
 ```
 
 Jaeger:
 
 ```bash
-kubectl port-forward -n sre-lab svc/jaeger 16686:16686
+kubectl port-forward -n sre-lab svc/jaeger 16687:16686
 ```
 
 ## 4. Verify the Application
@@ -105,19 +107,19 @@ kubectl port-forward -n sre-lab svc/jaeger 16686:16686
 Health check:
 
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:3002/health
 ```
 
 Checkout request:
 
 ```bash
-curl http://localhost:3000/checkout
+curl http://localhost:3002/checkout
 ```
 
 Metrics:
 
 ```bash
-curl http://localhost:3000/metrics
+curl http://localhost:3002/metrics
 ```
 
 ## 5. Trigger the Incident
@@ -125,7 +127,7 @@ curl http://localhost:3000/metrics
 Run the load test:
 
 ```bash
-k6 run load/high-latency.js
+BASE_URL=http://localhost:3002 k6 run load/high-latency.js
 ```
 
 The default Kubernetes configuration uses:
@@ -142,7 +144,7 @@ This causes requests to queue for database connections under load.
 Open Grafana:
 
 ```text
-http://localhost:3001
+http://localhost:3101
 ```
 
 Default credentials:
@@ -168,7 +170,7 @@ Look for:
 Open Prometheus:
 
 ```text
-http://localhost:9090
+http://localhost:9190
 ```
 
 P95 latency query:
@@ -191,7 +193,7 @@ sum(rate(http_request_duration_seconds_count{route="/checkout"}[5m]))
 Open Jaeger:
 
 ```text
-http://localhost:16686
+http://localhost:16687
 ```
 
 Search for service:

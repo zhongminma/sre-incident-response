@@ -106,13 +106,13 @@ jaeger
 Port-forward Grafana:
 
 ```bash
-kubectl port-forward -n sre-lab svc/grafana 3001:3000
+kubectl port-forward -n sre-lab svc/grafana 3101:3000
 ```
 
 Open:
 
 ```text
-http://localhost:3001
+http://localhost:3101
 ```
 
 Default credentials:
@@ -124,13 +124,13 @@ admin / admin
 Port-forward Prometheus in another terminal:
 
 ```bash
-kubectl port-forward -n sre-lab svc/prometheus 9090:9090
+kubectl port-forward -n sre-lab svc/prometheus 9190:9090
 ```
 
 Open:
 
 ```text
-http://localhost:9090
+http://localhost:9190
 ```
 
 ## 4. Verify Checkout Service
@@ -138,19 +138,19 @@ http://localhost:9090
 Port-forward checkout-service:
 
 ```bash
-kubectl port-forward -n sre-lab svc/checkout-service 3000:3000
+kubectl port-forward -n sre-lab svc/checkout-service 3002:3000
 ```
 
 Check health:
 
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:3002/health
 ```
 
 Check current memory:
 
 ```bash
-curl http://localhost:3000/memory-status
+curl http://localhost:3002/memory-status
 ```
 
 Expected response includes:
@@ -167,7 +167,7 @@ leakedMb
 In a terminal with checkout-service port-forward running:
 
 ```bash
-k6 run load/memory-leak.js
+BASE_URL=http://localhost:3002 k6 run load/memory-leak.js
 ```
 
 Default load settings:
@@ -181,14 +181,14 @@ SLEEP_SECONDS=2
 You can make the leak more aggressive:
 
 ```bash
-LEAK_MB=40 ITERATIONS=10 k6 run load/memory-leak.js
+BASE_URL=http://localhost:3002 LEAK_MB=40 ITERATIONS=10 k6 run load/memory-leak.js
 ```
 
 If you do not have k6 installed, use curl:
 
 ```bash
 for i in {1..10}; do
-  curl "http://localhost:3000/memory-leak?mb=20"
+  curl "http://localhost:3002/memory-leak?mb=20"
   echo
   sleep 2
 done
@@ -245,7 +245,7 @@ Restart count increases after the container is killed.
 Open:
 
 ```text
-http://localhost:9090/alerts
+http://localhost:9190/alerts
 ```
 
 Expected alerts:
@@ -338,7 +338,7 @@ The application repeatedly retained memory before the OOMKilled restart.
 This demo does not create a heap snapshot file yet. The first-pass heap analysis uses runtime memory fields from `/memory-status`:
 
 ```bash
-curl http://localhost:3000/memory-status
+curl http://localhost:3002/memory-status
 ```
 
 Interpretation:
@@ -403,7 +403,7 @@ kubectl get pods -n sre-lab -l app=checkout-service
 Check memory status:
 
 ```bash
-curl http://localhost:3000/memory-status
+curl http://localhost:3002/memory-status
 ```
 
 Expected recovery:
@@ -436,7 +436,7 @@ If `/memory-leak` does not trigger OOMKilled:
 
 ```text
 Run the loop again.
-Increase mb to 40: curl "http://localhost:3000/memory-leak?mb=40".
+Increase mb to 40: curl "http://localhost:3002/memory-leak?mb=40".
 Confirm the pod has memory limit 128Mi with kubectl describe pod.
 ```
 
