@@ -211,3 +211,471 @@ Recommended follow-up actions:
 - Add a dashboard panel for pool size and active connections.
 - Load test checkout before production releases.
 - Tune database pool size based on traffic and database capacity.
+
+## Detailed Test Manual
+
+This section explains how to test the local Docker Compose version of the incident.
+
+The goal is to validate the full incident workflow:
+
+```text
+Start lab
+  -> Verify services
+  -> Trigger high latency
+  -> Observe metrics, logs, and traces
+  -> Apply fix
+  -> Verify recovery
+```
+
+### 1. Start the Lab
+
+From the project root:
+
+```bash
+cd /Users/kevinma/Documents/sre-incident-response
+docker compose up --build -d
+```
+
+Check that all containers are running:
+
+```bash
+docker compose ps
+```
+
+Expected services:
+
+```text
+checkout-service
+postgres
+prometheus
+grafana
+jaeger
+```
+
+### 2. Verify the Checkout API
+
+Health check:
+
+```bash
+curl http://localhost:3000/health
+```
+
+Expected response:
+
+```json
+{"service":"checkout-service","status":"healthy"}
+```
+
+Checkout request:
+
+```bash
+curl http://localhost:3000/checkout
+```
+
+Expected response:
+
+```json
+{
+  "status": "ok",
+  "databaseTime": "...",
+  "connectionWaitMs": 10,
+  "simulatedDbWorkMs": 800,
+  "latencyMs": 820
+}
+```
+
+Metrics endpoint:
+
+```bash
+curl http://localhost:3000/metrics
+```
+
+Look for:
+
+```text
+http_request_duration_seconds
+```
+
+### 3. Verify Prometheus
+
+Open Prometheus:
+
+```text
+http://localhost:9090
+```
+
+Check readiness:
+
+```bash
+curl http://localhost:9090/-/ready
+```
+
+Expected response:
+
+```text
+Prometheus Server is Ready.
+```
+
+Check target status:
+
+```text
+Status -> Targets
+```
+
+Expected target:
+
+```text
+checkout-service:3000
+```
+
+Expected state:
+
+```text
+UP
+```
+
+Run this PromQL query:
+
+```promql
+up
+```
+
+Expected result:
+
+```text
+checkout-service target value is 1
+```
+
+### 4. Verify Grafana
+
+Open Grafana:
+
+```text
+http://localhost:3001
+```
+
+Default credentials:
+
+```text
+admin / admin
+```
+
+Open dashboard:
+
+```text
+SRE Lab / Checkout Latency Incident
+```
+
+Expected panels:
+
+```text
+Checkout P95 Latency
+Checkout Latency Percentiles
+Checkout Request Rate
+Checkout Error Rate
+```
+
+### 5. Verify Jaeger
+
+Open Jaeger:
+
+```text
+http://localhost:16686
+```
+
+Select service:
+
+```text
+checkout-service
+```
+
+Generate one checkout request if needed:
+
+```bash
+curl http://localhost:3000/checkout
+```
+
+Search for traces.
+
+Expected operations:
+
+```text
+GET /checkout
+pg-pool.connect
+pg.query:SELECT checkout
+```
+
+### 6. Trigger the High Latency Incident
+
+If k6 is installed locally:
+
+```bash
+k6 run load/high-latency.js
+```
+
+If k6 is not installed locally, use Docker:
+
+```bash
+docker run --rm \
+  --network sre-incident-response_default \
+  -v /Users/kevinma/Documents/sre-incident-response/load:/scripts \
+  -e BASE_URL=http://checkout-service:3000 \
+  grafana/k6:0.52.0 run /scripts/high-latency.js
+```
+
+The load test ramps traffic up to 30 virtual users.
+
+The incident configuration is:
+
+```text
+DB_POOL_SIZE=2
+DB_POOL_ACQUIRE_TIMEOUT_MS=3000
+SIMULATED_DB_WORK_MS=800
+```
+
+Expected k6 signal:
+
+```text
+http_req_duration p95 increases to multiple seconds
+some requests may return 503
+```
+
+During validation, one observed run produced:
+
+```text
+k6 p95 latency: 3.52s
+Prometheus P95: ~4.88s
+error rate: ~46.8%
+```
+
+### 7. Observe the Incident in Grafana
+
+Open:
+
+```text
+http://localhost:3001
+```
+
+Dashboard:
+
+```text
+SRE Lab / Checkout Latency Incident
+```
+
+Watch:
+
+```text
+Checkout P95 Latency
+Checkout Latency Percentiles
+Checkout Request Rate
+Checkout Error Rate
+```
+
+Expected finding:
+
+```text
+P95 latency rises sharply during the load test.
+```
+
+### 8. Observe the Incident in Prometheus
+
+P95 latency:
+
+```promql
+histogram_quantile(
+  0.95,
+  sum(rate(http_request_duration_seconds_bucket{route="/checkout"}[5m])) by (le)
+)
+```
+
+Request rate:
+
+```promql
+sum(rate(http_request_duration_seconds_count{route="/checkout"}[5m]))
+```
+
+Error rate:
+
+```promql
+sum(rate(http_request_duration_seconds_count{route="/checkout",status_code=~"5.."}[5m]))
+/
+sum(rate(http_request_duration_seconds_count{route="/checkout"}[5m]))
+```
+
+Expected finding:
+
+```text
+Latency and error rate increase when concurrency exceeds the DB pool size.
+```
+
+### 9. Observe the Incident in Logs
+
+Follow checkout-service logs:
+
+```bash
+docker compose logs -f checkout-service
+```
+
+Look for:
+
+```text
+checkout request waiting for database connection
+checkout request acquired database connection
+checkout request released database connection
+checkout database operation failed
+timeout exceeded when trying to connect
+```
+
+Expected finding:
+
+```text
+Requests wait for database connections and some requests time out.
+```
+
+### 10. Observe the Incident in Jaeger
+
+Open:
+
+```text
+http://localhost:16686
+```
+
+Select service:
+
+```text
+checkout-service
+```
+
+Search for operation:
+
+```text
+GET /checkout
+```
+
+Expected trace spans:
+
+```text
+GET /checkout
+pg-pool.connect
+pg.connect
+pg.query:SELECT checkout
+```
+
+Expected finding:
+
+```text
+The checkout request includes database connection and query spans.
+```
+
+### 11. Apply the Fix
+
+Stop the incident version:
+
+```bash
+docker compose down
+```
+
+Start the fixed profile:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.fixed.yml up --build -d
+```
+
+The fixed profile changes:
+
+```text
+DB_POOL_SIZE=2 -> DB_POOL_SIZE=20
+```
+
+Confirm the service started with the fixed pool size:
+
+```bash
+docker compose logs checkout-service
+```
+
+Expected startup log:
+
+```text
+dbPoolSize: '20'
+```
+
+### 12. Verify Recovery
+
+Run the same k6 test again:
+
+```bash
+docker run --rm \
+  --network sre-incident-response_default \
+  -v /Users/kevinma/Documents/sre-incident-response/load:/scripts \
+  -e BASE_URL=http://checkout-service:3000 \
+  grafana/k6:0.52.0 run /scripts/high-latency.js
+```
+
+Expected recovery signals:
+
+```text
+P95 latency is lower
+error rate is lower
+fewer or no DB connection timeout logs
+```
+
+Check Grafana again:
+
+```text
+SRE Lab / Checkout Latency Incident
+```
+
+Compare before and after:
+
+```text
+incident profile: DB_POOL_SIZE=2
+fixed profile: DB_POOL_SIZE=20
+```
+
+### 13. Clean Up
+
+Stop and remove containers:
+
+```bash
+docker compose down
+```
+
+Remove volumes if you want a fresh database next time:
+
+```bash
+docker compose down -v
+```
+
+### Troubleshooting
+
+If Docker is not running:
+
+```text
+Start Docker Desktop and retry docker compose commands.
+```
+
+If k6 is not installed:
+
+```text
+Use the Docker-based k6 command from this guide.
+```
+
+If Grafana dashboard is missing:
+
+```bash
+docker compose logs grafana
+```
+
+If Prometheus target is down:
+
+```bash
+docker compose logs prometheus
+docker compose logs checkout-service
+```
+
+If Jaeger has no traces:
+
+```bash
+curl http://localhost:3000/checkout
+docker compose logs checkout-service
+```
