@@ -1,0 +1,17 @@
+groups:
+  - name: checkout-latency
+    rules:
+      - alert: HighCheckoutP95Latency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_seconds_bucket{route="/checkout"}[1m])) by (le)
+          ) > 2.5
+        for: 30s
+        labels:
+          severity: warning
+          service: checkout-service
+          incident: high-latency-db-pool-exhaustion
+        annotations:
+          summary: "Checkout P95 latency is above 2.5s"
+          description: "Checkout P95 latency has stayed above 2.5 seconds for 30 seconds. Investigate DB connection pool exhaustion."

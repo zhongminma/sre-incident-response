@@ -61,6 +61,7 @@ SRE Lab / Checkout Latency Incident
 Expected visible signals:
 
 - Checkout P95 latency increases.
+- `HighCheckoutP95Latency` alert triggers when P95 stays above `2.5s`.
 - Request rate remains stable during the load test.
 - Some requests may return `503` if connection acquisition times out.
 - Logs show requests waiting for and acquiring database connections.
@@ -83,6 +84,7 @@ Start with the `Checkout Latency Incident` dashboard.
 Check:
 
 - `Checkout P95 Latency`
+- `Alert Triggered: P95 Latency > 2.5s`
 - `Checkout Latency Percentiles`
 - `Checkout Request Rate`
 - `Checkout Error Rate`
@@ -118,6 +120,12 @@ Error rate:
 sum(rate(http_request_duration_seconds_count{route="/checkout",status_code=~"5.."}[5m]))
 /
 sum(rate(http_request_duration_seconds_count{route="/checkout"}[5m]))
+```
+
+Alert firing state:
+
+```promql
+ALERTS{alertname="HighCheckoutP95Latency",alertstate="firing"}
 ```
 
 Expected finding:
@@ -397,6 +405,7 @@ Expected panels:
 
 ```text
 Checkout P95 Latency
+Alert Triggered: P95 Latency > 2.5s
 Checkout Latency Percentiles
 Checkout Request Rate
 Checkout Error Rate
@@ -476,6 +485,7 @@ During validation, one observed run produced:
 ```text
 k6 p95 latency: 3.52s
 Prometheus P95: ~4.88s
+alert: HighCheckoutP95Latency firing
 error rate: ~46.8%
 ```
 
@@ -497,6 +507,7 @@ Watch:
 
 ```text
 Checkout P95 Latency
+Alert Triggered: P95 Latency > 2.5s
 Checkout Latency Percentiles
 Checkout Request Rate
 Checkout Error Rate
@@ -506,6 +517,7 @@ Expected finding:
 
 ```text
 P95 latency rises sharply during the load test.
+The alert panel changes from OK to TRIGGERED after P95 stays above 2.5s for 30 seconds.
 ```
 
 Use the `Last 15 minutes` time range and refresh the dashboard after k6 has been running for 10-20 seconds.
@@ -541,6 +553,25 @@ Error rate:
 sum(rate(http_request_duration_seconds_count{route="/checkout",status_code=~"5.."}[5m]))
 /
 sum(rate(http_request_duration_seconds_count{route="/checkout"}[5m]))
+```
+
+Alert state:
+
+```promql
+ALERTS{alertname="HighCheckoutP95Latency",alertstate="firing"}
+```
+
+You can also open:
+
+```text
+http://localhost:9090/alerts
+```
+
+Expected alert:
+
+```text
+HighCheckoutP95Latency
+state: firing
 ```
 
 Expected finding:
@@ -675,6 +706,7 @@ Expected recovery signals:
 
 ```text
 P95 latency is lower
+HighCheckoutP95Latency alert returns to inactive
 error rate is lower
 fewer or no DB connection timeout logs
 ```
@@ -751,6 +783,20 @@ Confirm checkout metrics exist with:
 
 ```promql
 http_request_duration_seconds_count{route="/checkout"}
+```
+
+If the alert does not trigger:
+
+```text
+Open http://localhost:9090/alerts and confirm HighCheckoutP95Latency is loaded.
+Run k6 for at least 30 seconds after P95 goes above 2.5s.
+Use the incident profile with DB_POOL_SIZE=2, not the fixed profile with DB_POOL_SIZE=20.
+```
+
+Confirm alert state with:
+
+```promql
+ALERTS{alertname="HighCheckoutP95Latency"}
 ```
 
 If Prometheus target is down:
