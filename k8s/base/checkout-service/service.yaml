@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkout-service
+  namespace: sre-lab
+  labels:
+    app: checkout-service
+spec:
+  type: ClusterIP
+  selector:
+    app: checkout-service
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

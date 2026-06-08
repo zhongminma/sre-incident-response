@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: checkout-service-config
+  namespace: sre-lab
+data:
+  PORT: "3000"
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: checkout
+  DB_USER: checkout
+  DB_POOL_SIZE: "2"
+  DB_POOL_ACQUIRE_TIMEOUT_MS: "3000"
+  SIMULATED_DB_WORK_MS: "800"
+  OTEL_SERVICE_NAME: checkout-service
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
