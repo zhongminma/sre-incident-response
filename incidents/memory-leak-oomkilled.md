@@ -54,6 +54,7 @@ You need:
 ```bash
 kubectl version --client
 docker --version
+k6 version
 ```
 
 You also need a local Kubernetes cluster, such as Docker Desktop Kubernetes, minikube, or kind.
@@ -164,6 +165,26 @@ leakedMb
 ## 5. Trigger the Memory Leak
 
 In a terminal with checkout-service port-forward running:
+
+```bash
+k6 run load/memory-leak.js
+```
+
+Default load settings:
+
+```text
+ITERATIONS=10
+LEAK_MB=20
+SLEEP_SECONDS=2
+```
+
+You can make the leak more aggressive:
+
+```bash
+LEAK_MB=40 ITERATIONS=10 k6 run load/memory-leak.js
+```
+
+If you do not have k6 installed, use curl:
 
 ```bash
 for i in {1..10}; do
