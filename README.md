@@ -2,8 +2,7 @@
 
 Production-style incident investigation lab using OpenTelemetry, Prometheus, Grafana, Jaeger, PostgreSQL, and Kubernetes.
 
-This project simulates real production incidents and demonstrates how SRE teams investigate, identify root causes, and verify fixes with observability tools.
-
+This repository demonstrates how Site Reliability Engineers investigate production incidents using metrics, logs, and distributed tracing to reduce MTTR and validate system recovery.
 
 ## Target Stack
 
@@ -13,13 +12,33 @@ This project simulates real production incidents and demonstrates how SRE teams 
 - Jaeger for distributed tracing
 - Kubernetes for deployment and incident simulation
 
-## Observability Features
+## SRE Skills Demonstrated
+
+### Observability
 
 - Metrics (Prometheus)
+- Dashboards (Grafana)
 - Distributed Tracing (OpenTelemetry + Jaeger)
-- Context Propagation
-- Trace/Span Correlation
-- Service Dependency Analysis
+
+### Incident Response
+
+- Alert Investigation
+- Root Cause Analysis
+- Incident Mitigation
+- Verification
+
+### Reliability Engineering
+
+- P95 Latency Analysis
+- Error Rate Monitoring
+- Service Health Validation
+
+### Kubernetes
+
+- Containerized Deployment
+- Service Discovery
+- Metrics Collection
+
 
 ## First Incident Scenario
 
@@ -40,7 +59,7 @@ Grafana
   -> Root cause analysis
 ```
 ## Troubleshoot workflow
-<img width="1019" height="2669" alt="mermaid-diagram" src="https://github.com/user-attachments/assets/6b63caf6-a4cd-4238-aa6d-e9c7091b71a7" />
+<img width="3287" height="523" alt="mermaid-diagram (1)" src="https://github.com/user-attachments/assets/094a4f2f-f923-4c1c-813d-8692e5ba5f01" />
 
 
 ## screenshots
