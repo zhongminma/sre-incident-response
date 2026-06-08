@@ -40,7 +40,7 @@ This repository demonstrates how Site Reliability Engineers investigate producti
 - Metrics Collection
 
 
-## First Incident Scenario - DB_pool_size
+# First Incident Scenario - DB_pool_size
 
 <img width="1646" height="688" alt="Screenshot 2026-06-08 at 14 38 06" src="https://github.com/user-attachments/assets/adac2067-c8d5-481f-8fe7-d22e308d7b08" />
 
@@ -91,17 +91,22 @@ Grafana
 - P95 recovered to < 1s
 - Error rate normalized
 
-## Second Incident Scenario - OOMKilled
+# Second Incident Scenario - OOMKilled
 
 1. Prometheus triggered alert
-
 <img width="1472" height="558" alt="Screenshot 2026-06-08 at 16 31 44" src="https://github.com/user-attachments/assets/aa31d124-77d1-4956-8105-093fb89e6d68" />
 
 2. Grafana showed pod restart count and memory usage has a spike.
 <img width="1327" height="849" alt="Screenshot 2026-06-08 at 16 43 21" src="https://github.com/user-attachments/assets/05551ff3-0d21-4626-9da5-888325f9a20b" />
 
 3. kubectl describe the Pod and find the OOMKilled as well
-<img width="1018" height="324" alt="Screenshot 2026-06-08 at 16 37 48" src="https://github.com/user-attachments/assets/b14b00d8-d03b-4133-b46b-c365f8fac670" />
+```text
+kubectl get pods
+kubectl describe pod -n sre-lab -l app=checkout-service
+kubectl describe pod checkout-service-577dc59b8d| grep -i oom
+```
+<img width="1074" height="406" alt="Screenshot 2026-06-08 at 16 33 14" src="https://github.com/user-attachments/assets/766b532e-8a0c-418d-affc-7bd0e2ef3d95" />
+ 
 
 4. kubectl logs confirmed Memory Leak Behavior
 <img width="776" height="290" alt="Screenshot 2026-06-08 at 16 35 29" src="https://github.com/user-attachments/assets/477a5d9a-7043-4945-9b15-e07499ef1700" />
@@ -115,11 +120,30 @@ Grafana
 kubectl rollout restart deployment/checkout-service -n sre-lab
 ```
 
-9. validation pass (validate either via Grafana or curl /health or kubectl pods status)
+7. validation pass (validate either via Grafana or curl /health or kubectl pods status)
+
+<img width="1018" height="324" alt="Screenshot 2026-06-08 at 16 37 48" src="https://github.com/user-attachments/assets/b14b00d8-d03b-4133-b46b-c365f8fac670" />
 
 <img width="1476" height="844" alt="Screenshot 2026-06-08 at 17 03 33" src="https://github.com/user-attachments/assets/33020ddb-195a-47db-b0ed-1bbe00db363d" />
 
+## Investigation Steps
+1. Grafana dashboard showed memory utilization growing linearly over time.
+2. Kubernetes metrics revealed increasing container memory consumption.
+3. Pod restart count increased unexpectedly.
+4. kubectl describe pod confirmed OOMKilled events.
+5. Jaeger traces remained healthy, eliminating downstream latency as the primary cause.
+6. Log analysis indicated objects were retained in memory and not released.
+7. Root cause identified as application memory leak.
 
+## Key SRE Concepts Demonstrated
+- Incident Response
+- Root Cause Analysis
+- Distributed Tracing
+- Metrics Correlation
+- Kubernetes Troubleshooting
+- OOMKilled Investigation
+- Performance Analysis
+- Service Recovery Validation
 ## Implementation Approach
 The lab will be built step by step. Each step adds one small feature and is committed separately.
 Initial milestones:
