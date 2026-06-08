@@ -9,6 +9,9 @@ services:
       DB_NAME: checkout
       DB_USER: checkout
       DB_PASSWORD: checkout
+      DB_POOL_SIZE: 2
+      DB_POOL_ACQUIRE_TIMEOUT_MS: 3000
+      SIMULATED_DB_WORK_MS: 800
     ports:
       - "3000:3000"
     depends_on:
