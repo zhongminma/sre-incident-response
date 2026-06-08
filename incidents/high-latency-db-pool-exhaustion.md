@@ -610,17 +610,15 @@ The checkout request includes database connection and query spans.
 
 ### 11. Apply the Fix
 
-Stop the incident version:
+Keep Prometheus and Grafana running so you can compare the incident and recovery on the same dashboard.
+
+Recreate only the checkout service with the fixed profile:
 
 ```bash
-docker compose down
+docker compose -f docker-compose.yml -f docker-compose.fixed.yml up --build -d --no-deps checkout-service
 ```
 
-Start the fixed profile:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.fixed.yml up --build -d
-```
+Do not run `docker compose down` before applying the fix. In this lab, `down` removes containers and can reset short-lived observability data, which makes before-and-after comparison harder.
 
 The fixed profile changes:
 
@@ -638,6 +636,31 @@ Expected startup log:
 
 ```text
 dbPoolSize: '20'
+```
+
+Prometheus target should stay `UP`:
+
+```text
+http://localhost:9090/targets
+```
+
+Grafana should keep the existing dashboard time series while new recovery samples arrive:
+
+```text
+http://localhost:3001
+SRE Lab / Checkout Latency Incident
+```
+
+If you already ran `docker compose down`, start the fixed lab again:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.fixed.yml up --build -d
+```
+
+Then generate fresh checkout traffic:
+
+```bash
+k6 run load/high-latency.js
 ```
 
 ### 12. Verify Recovery
@@ -671,17 +694,33 @@ fixed profile: DB_POOL_SIZE=20
 
 ### 13. Clean Up
 
-Stop and remove containers:
+If you only want to pause the lab and keep container-local runtime data:
+
+```bash
+docker compose stop
+```
+
+Start it again later:
+
+```bash
+docker compose start
+```
+
+Stop and remove containers when you are finished with the lab:
 
 ```bash
 docker compose down
 ```
+
+The current Compose file keeps Grafana, Prometheus, and Postgres data in named Docker volumes, so `docker compose down` does not remove those volumes.
 
 Remove volumes if you want a fresh database next time:
 
 ```bash
 docker compose down -v
 ```
+
+Warning: `docker compose down -v` deletes named volumes, including Grafana, Prometheus, and Postgres data.
 
 ### Troubleshooting
 
