@@ -407,20 +407,10 @@ pg.query:SELECT checkout
 
 ### 6. Trigger the High Latency Incident
 
-If k6 is installed locally:
+Run the high latency load test:
 
 ```bash
 k6 run load/high-latency.js
-```
-
-If k6 is not installed locally, use Docker:
-
-```bash
-docker run --rm \
-  --network sre-incident-response_default \
-  -v /Users/kevinma/Documents/sre-incident-response/load:/scripts \
-  -e BASE_URL=http://checkout-service:3000 \
-  grafana/k6:0.52.0 run /scripts/high-latency.js
 ```
 
 The load test ramps traffic up to 30 virtual users.
@@ -604,11 +594,7 @@ dbPoolSize: '20'
 Run the same k6 test again:
 
 ```bash
-docker run --rm \
-  --network sre-incident-response_default \
-  -v /Users/kevinma/Documents/sre-incident-response/load:/scripts \
-  -e BASE_URL=http://checkout-service:3000 \
-  grafana/k6:0.52.0 run /scripts/high-latency.js
+k6 run load/high-latency.js
 ```
 
 Expected recovery signals:
@@ -652,12 +638,6 @@ If Docker is not running:
 
 ```text
 Start Docker Desktop and retry docker compose commands.
-```
-
-If k6 is not installed:
-
-```text
-Use the Docker-based k6 command from this guide.
 ```
 
 If Grafana dashboard is missing:
