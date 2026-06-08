@@ -78,28 +78,12 @@ Grafana
 6. Root Cause is "Database connection pool exhausted".
 
 7. Mitigation
-- Increase pool size
+- Increased connection pool size from 2 to 20
 - Optimize query execution
 
 8. Verification
 - P95 recovered to < 1s
 - Error rate normalized
-
-## Root Cause
-
-Database connection pool was configured with a maximum of 2 active connections.
-During load testing, concurrent requests exceeded available database connections, causing requests to block while waiting for a free connection.
-This resulted in:
-- Increased request latency
-- Elevated error rates
-- Trace spans showing prolonged database wait times
-
-## Resolution
-
-- Increased connection pool size from 2 to 20
-- Added connection pool utilization metrics
-- Documented database capacity thresholds
-
 
 ## Implementation Approach
 The lab will be built step by step. Each step adds one small feature and is committed separately.
