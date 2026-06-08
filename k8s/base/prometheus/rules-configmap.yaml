@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: sre-lab
+data:
+  oomkilled-alerts.yml: |
+    groups:
+      - name: kubernetes-oomkilled
+        rules:
+          - alert: CheckoutMemoryUsageNearLimit
+            expr: |
+              (
+                sum(container_memory_working_set_bytes{namespace="sre-lab",pod=~"checkout-service-.*",container="checkout-service"})
+                /
+                sum(kube_pod_container_resource_limits{namespace="sre-lab",pod=~"checkout-service-.*",container="checkout-service",resource="memory"})
+              ) > 0.85
+            for: 30s
+            labels:
+              severity: warning
+              service: checkout-service
+              incident: memory-leak-oomkilled
+            annotations:
+              summary: "Checkout memory usage is above 85% of its Kubernetes limit"
+              description: "Checkout memory usage is approaching the configured Kubernetes memory limit. Investigate memory growth before the pod is OOMKilled."
+
+          - alert: CheckoutPodOOMKilled
+            expr: |
+              max(kube_pod_container_status_last_terminated_reason{namespace="sre-lab",pod=~"checkout-service-.*",container="checkout-service",reason="OOMKilled"}) == 1
+            for: 0s
+            labels:
+              severity: critical
+              service: checkout-service
+              incident: memory-leak-oomkilled
+            annotations:
+              summary: "Checkout pod was OOMKilled"
+              description: "The checkout-service container last terminated because Kubernetes killed it for exceeding its memory limit."

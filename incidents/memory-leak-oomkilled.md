@@ -231,6 +231,7 @@ Check:
 ```text
 Checkout Pod Restart Count
 OOMKilled Last Termination
+Alert Triggered: Memory Leak / OOMKilled
 ```
 
 Expected finding:
@@ -239,7 +240,46 @@ Expected finding:
 Restart count increases after the container is killed.
 ```
 
-## 8. Kubernetes: Describe the Pod
+## 8. Prometheus: Alert Triggered
+
+Open:
+
+```text
+http://localhost:9090/alerts
+```
+
+Expected alerts:
+
+```text
+CheckoutMemoryUsageNearLimit
+CheckoutPodOOMKilled
+```
+
+During memory growth, this alert should fire:
+
+```text
+CheckoutMemoryUsageNearLimit
+```
+
+After Kubernetes kills the container, this alert should fire:
+
+```text
+CheckoutPodOOMKilled
+```
+
+You can also query alert state:
+
+```promql
+ALERTS{alertname=~"CheckoutMemoryUsageNearLimit|CheckoutPodOOMKilled"}
+```
+
+Expected Grafana finding:
+
+```text
+Alert Triggered: Memory Leak / OOMKilled changes from OK to TRIGGERED.
+```
+
+## 9. Kubernetes: Describe the Pod
 
 Find the checkout pod:
 
@@ -267,7 +307,7 @@ Expected conclusion:
 Kubernetes killed the checkout-service container because it exceeded its memory limit.
 ```
 
-## 9. Logs: Confirm Memory Leak Behavior
+## 10. Logs: Confirm Memory Leak Behavior
 
 Check current container logs:
 
@@ -293,7 +333,7 @@ Expected finding:
 The application repeatedly retained memory before the OOMKilled restart.
 ```
 
-## 10. Heap Analysis
+## 11. Heap Analysis
 
 This demo does not create a heap snapshot file yet. The first-pass heap analysis uses runtime memory fields from `/memory-status`:
 
@@ -316,7 +356,7 @@ Expected conclusion:
 The memory leak is retained Buffer allocations in the Node.js process.
 ```
 
-## 11. Root Cause
+## 12. Root Cause
 
 The `/memory-leak` endpoint stores allocated Buffer objects in a process-level array and never releases them.
 
@@ -336,7 +376,7 @@ Large buffers retained after request completion
 Missing cleanup in background jobs
 ```
 
-## 12. Fix
+## 13. Fix
 
 For this demo, stop calling `/memory-leak` and restart the deployment:
 
@@ -352,7 +392,7 @@ kubectl rollout status deployment/checkout-service -n sre-lab
 
 Production fixes should remove the unbounded retention pattern, add cache limits, or release large objects after request completion.
 
-## 13. Verify Recovery
+## 14. Verify Recovery
 
 Check pod status:
 
@@ -374,7 +414,7 @@ Memory returns to baseline
 Restart count stops increasing
 ```
 
-## 14. Clean Up
+## 15. Clean Up
 
 Delete the lab:
 
