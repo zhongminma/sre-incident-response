@@ -40,3 +40,4 @@ configMapGenerator:
     namespace: sre-lab
     files:
       - checkout-latency.json=grafana/dashboards/checkout-latency.json
+      - oomkilled.json=grafana/dashboards/oomkilled.json

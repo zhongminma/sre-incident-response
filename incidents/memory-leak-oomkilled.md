@@ -214,8 +214,8 @@ SRE Lab / Kubernetes OOMKilled Incident
 Check:
 
 ```text
-Checkout Memory Usage
-Checkout Memory Limit
+Checkout Memory Growth
+Memory Usage vs Limit
 ```
 
 Expected finding:
@@ -230,6 +230,7 @@ Check:
 
 ```text
 Checkout Pod Restart Count
+OOMKilled Last Termination
 ```
 
 Expected finding:
