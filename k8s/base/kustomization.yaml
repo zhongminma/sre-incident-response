@@ -8,6 +8,9 @@ resources:
   - postgres/service.yaml
   - jaeger/deployment.yaml
   - jaeger/service.yaml
+  - prometheus/configmap.yaml
+  - prometheus/deployment.yaml
+  - prometheus/service.yaml
   - checkout-service/configmap.yaml
   - checkout-service/secret.yaml
   - checkout-service/deployment.yaml
